@@ -13,16 +13,8 @@ public class Hero {
     private Vector2 lastDisplacement;
     private float angle;
 
-    public Vector2 getPosition() {
-        return position;
-    }
-
     public Vector2 getLastDisplacement() {
         return lastDisplacement;
-    }
-
-    public float getAngle() {
-        return angle;
     }
 
     public Hero() {
