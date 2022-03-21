@@ -1,5 +1,8 @@
 package com.star.app.game;
 
+import com.badlogic.gdx.math.MathUtils;
+import com.star.app.screen.ScreenManager;
+
 public class GameController {
     private Background background;
     private BulletController bulletController;
@@ -25,8 +28,14 @@ public class GameController {
     public GameController() {
         this.background = new Background(this);
         this.bulletController = new BulletController();
-        this.asteroidController = new AsteroidController();
+        this.asteroidController = new AsteroidController(this);
         this.hero = new Hero(this);
+
+        for (int i = 0; i < 3; i++) {
+            asteroidController.setup(MathUtils.random(0, ScreenManager.SCREEN_WIDTH),
+                    MathUtils.random(0, ScreenManager.SCREEN_HEIGHT),
+                    MathUtils.random(-150, 150), MathUtils.random(-150, 150), 1.0f);
+        }
     }
 
     public void update(float dt) {
@@ -40,9 +49,25 @@ public class GameController {
     public void checkCollisions() {
         for (int i = 0; i < bulletController.getActiveList().size(); i++) {
             Bullet b = bulletController.getActiveList().get(i);
+            for (int j = 0; j < asteroidController.getActiveList().size(); j++) {
+                Asteroid a = asteroidController.getActiveList().get(j);
+                if (a.getHitArea().contains(b.getPosition())) {
+                    b.deactivate();
+                    if (a.takeDamage(1)) {
+                        hero.addScore(a.getHpMax() * 100);
+                    }
+                    break;
+                }
+            }
+        }
 
-            if (hero.getPosition().dst(b.getPosition()) < 32.0f) {
-                //b.deactivate();
+        for (int j = 0; j < asteroidController.getActiveList().size(); j++) {
+            Asteroid a = asteroidController.getActiveList().get(j);
+            if (a.getHitArea().overlaps(hero.getHitArea())) {
+                hero.addScore(a.getHpMax() * 100);
+                hero.delHP(a.getHpMax());
+                a.deactivate();
+                break;
             }
         }
 
