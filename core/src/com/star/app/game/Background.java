@@ -68,4 +68,8 @@ public class Background {
         }
     }
 
+    public void dispose() {
+        textureCosmos.dispose();
+    }
+
 }
