@@ -5,11 +5,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.star.app.StarGame;
+import com.star.app.game.Hero;
 import com.star.app.screen.utils.Assets;
 
 public class ScreenManager {
     public enum ScreenType {
-        GAME, MENU, GAMEOVERSCREEN
+        GAME, MENU, GAMEOVER
     }
 
     public static final int SCREEN_WIDTH = 1280;
@@ -73,9 +74,10 @@ public class ScreenManager {
                 Assets.getInstance().loadAssets(ScreenType.MENU);
                 break;
 
-            case GAMEOVERSCREEN:
-                targetScreen = menuScreen;
-                Assets.getInstance().loadAssets(ScreenType.GAMEOVERSCREEN);
+            case GAMEOVER:
+                targetScreen = gameOverScreen;
+                gameOverScreen.setDefeatedHero((Hero) args[0]);
+                Assets.getInstance().loadAssets(ScreenType.GAMEOVER);
                 break;
         }
     }

@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.MathUtils;
 import com.star.app.screen.ScreenManager;
-import com.star.app.screen.utils.Assets;
 
 public class GameController {
     private Background background;
@@ -73,7 +72,7 @@ public class GameController {
 
     private void checkGameOver() {
         if (getHero().getHp() <= 0) {
-            ScreenManager.getInstance().changeScreen(ScreenManager.ScreenType.GAMEOVERSCREEN, hero);
+            ScreenManager.getInstance().changeScreen(ScreenManager.ScreenType.GAMEOVER, hero);
         }
     }
 
