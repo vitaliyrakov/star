@@ -3,6 +3,7 @@ package com.star.app.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.star.app.screen.ScreenManager;
 
 public class GameController {
@@ -13,6 +14,7 @@ public class GameController {
     private ParticleController particleController;
     private Hero hero;
     private Boolean pause;
+    private Vector2 tempVec;
 
     public ParticleController getParticleController() {
         return particleController;
@@ -46,8 +48,9 @@ public class GameController {
         this.hero = new Hero(this);
         this.particleController = new ParticleController();
         this.pause = false;
+        this.tempVec = new Vector2();
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 10; i++) {
             asteroidController.setup(MathUtils.random(0, ScreenManager.SCREEN_WIDTH),
                     MathUtils.random(0, ScreenManager.SCREEN_HEIGHT),
                     MathUtils.random(-150, 150), MathUtils.random(-150, 150), 1.0f);
@@ -110,6 +113,12 @@ public class GameController {
 
         for (int j = 0; j < bonusController.getActiveList().size(); j++) {
             Bonus b = bonusController.getActiveList().get(j);
+
+            if (b.getMagnetArea().overlaps(hero.getHitArea())) {
+                tempVec.set(hero.getPosition()).sub(b.getPosition()).nor();
+                b.getVelocity().mulAdd(tempVec, 100);
+            }
+
             if (b.getHitArea().overlaps(hero.getHitArea())) {
                 if (b.getType().equals(Bonus.BonusType.MEDICINE))
                     hero.addHP(10);
