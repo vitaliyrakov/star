@@ -1,7 +1,10 @@
 package com.star.app.game;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.MathUtils;
 import com.star.app.screen.ScreenManager;
+import com.star.app.screen.utils.Assets;
 
 public class GameController {
     private Background background;
@@ -10,6 +13,7 @@ public class GameController {
     private BonusController bonusController;
     private ParticleController particleController;
     private Hero hero;
+    private Boolean pause;
 
     public ParticleController getParticleController() {
         return particleController;
@@ -42,8 +46,9 @@ public class GameController {
         this.bonusController = new BonusController(this);
         this.hero = new Hero(this);
         this.particleController = new ParticleController();
+        this.pause = false;
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 30; i++) {
             asteroidController.setup(MathUtils.random(0, ScreenManager.SCREEN_WIDTH),
                     MathUtils.random(0, ScreenManager.SCREEN_HEIGHT),
                     MathUtils.random(-150, 150), MathUtils.random(-150, 150), 1.0f);
@@ -51,13 +56,25 @@ public class GameController {
     }
 
     public void update(float dt) {
-        background.update(dt);
-        bulletController.update(dt);
-        asteroidController.update(dt);
-        bonusController.update(dt);
-        particleController.update(dt);
-        hero.update(dt);
-        checkCollisions();
+        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+            pause = (pause == true) ? false : true;
+        }
+        if (!pause) {
+            background.update(dt);
+            bulletController.update(dt);
+            asteroidController.update(dt);
+            bonusController.update(dt);
+            particleController.update(dt);
+            hero.update(dt);
+            checkCollisions();
+            checkGameOver();
+        }
+    }
+
+    private void checkGameOver() {
+        if (getHero().getHp() <= 0) {
+            ScreenManager.getInstance().changeScreen(ScreenManager.ScreenType.GAMEOVERSCREEN, hero);
+        }
     }
 
     public void checkCollisions() {
@@ -98,7 +115,7 @@ public class GameController {
                 if (b.getType().equals(Bonus.BonusType.MEDICINE))
                     hero.addHP(10);
                 if (b.getType().equals(Bonus.BonusType.AMMUNITION))
-                    hero.getCurrentWeapon().setCurBullets(hero.getCurrentWeapon().getCurBullets()+100);
+                    hero.getCurrentWeapon().setCurBullets(hero.getCurrentWeapon().getCurBullets() + 100);
                 if (b.getType().equals(Bonus.BonusType.MONEY))
                     hero.addMonew(100);
 
