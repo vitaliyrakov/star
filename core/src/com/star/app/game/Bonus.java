@@ -15,6 +15,7 @@ public class Bonus implements Poolable {
     private Vector2 position;
     private Vector2 velocity;
     private Circle hitArea;
+    private Circle magnetArea;
     private Texture texture;
 
     private final float BASE_SIZE = 100.0f;
@@ -32,6 +33,7 @@ public class Bonus implements Poolable {
         this.position = new Vector2();
         this.velocity = new Vector2();
         this.hitArea = new Circle(0, 0, 0);
+        this.magnetArea = new Circle(0, 0, 0);
     }
 
     @Override
@@ -52,6 +54,19 @@ public class Bonus implements Poolable {
             this.active = false;
         }
         hitArea.setPosition(position);
+        magnetArea.setPosition(position);
+    }
+
+    public void setVelocity(Vector2 velocity) {
+        this.velocity = velocity;
+    }
+
+    public Vector2 getVelocity() {
+        return velocity;
+    }
+
+    public Vector2 getPosition() {
+        return position;
     }
 
     public void activate(float x, float y, float vx, float vy, float scale) {
@@ -59,7 +74,9 @@ public class Bonus implements Poolable {
         velocity.set(vx, vy);
         active = true;
         hitArea.setPosition(x, y);
+        magnetArea.setPosition(x, y);
         hitArea.setRadius(BASE_RADIUS * scale * 0.9f);
+        magnetArea.setRadius(BASE_RADIUS * scale * 2.0f);
         int rnd = MathUtils.random(1, 3);
         if (rnd==1){
             type = BonusType.AMMUNITION;
@@ -83,6 +100,10 @@ public class Bonus implements Poolable {
 
     public Circle getHitArea() {
         return hitArea;
+    }
+
+    public Circle getMagnetArea() {
+        return magnetArea;
     }
 
     public void deactivate() {
