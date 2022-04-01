@@ -1,35 +1,65 @@
 package com.star.app.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.star.app.screen.ScreenManager;
+import com.star.app.screen.utils.Assets;
 
 public class GameController {
     private Background background;
     private BulletController bulletController;
     private AsteroidController asteroidController;
-    private BonusController bonusController;
     private ParticleController particleController;
+    private PowerUpsController powerUpsController;
+    private InfoController infoController;
     private Hero hero;
-    private Boolean pause;
+    private Bot bot;
     private Vector2 tempVec;
+    private Stage stage;
+    private boolean pause;
+    private int level;
+    private float timer;
+    private Music music;
+
+
+    public float getTimer() {
+        return timer;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setPause(boolean pause) {
+        this.pause = pause;
+    }
+
+    public Stage getStage() {
+        return stage;
+    }
+
+    public InfoController getInfoController() {
+        return infoController;
+    }
+
+    public PowerUpsController getPowerUpsController() {
+        return powerUpsController;
+    }
 
     public ParticleController getParticleController() {
         return particleController;
-    }
-
-    public BulletController getBulletController() {
-        return bulletController;
     }
 
     public AsteroidController getAsteroidController() {
         return asteroidController;
     }
 
-    public BonusController getBonusController() {
-        return bonusController;
+    public BulletController getBulletController() {
+        return bulletController;
     }
 
     public Background getBackground() {
@@ -40,17 +70,30 @@ public class GameController {
         return hero;
     }
 
-    public GameController() {
+    public GameController(SpriteBatch batch) {
         this.background = new Background(this);
         this.bulletController = new BulletController(this);
         this.asteroidController = new AsteroidController(this);
-        this.bonusController = new BonusController(this);
-        this.hero = new Hero(this);
         this.particleController = new ParticleController();
-        this.pause = false;
+        this.powerUpsController = new PowerUpsController(this);
+        this.infoController = new InfoController();
+        this.hero = new Hero(this);
+        this.bot = new Bot(this);
         this.tempVec = new Vector2();
+        this.stage = new Stage(ScreenManager.getInstance().getViewport(), batch);
+        this.stage.addActor(hero.getShop());
+        Gdx.input.setInputProcessor(stage);
+        this.level = 1;
+        generateBigAsteroids(2);
 
-        for (int i = 0; i < 10; i++) {
+        this.music = Assets.getInstance().getAssetManager().get("audio/mortal.mp3");
+        this.music.setLooping(true);
+        this.music.play();
+
+    }
+
+    public void generateBigAsteroids(int count) {
+        for (int i = 0; i < count; i++) {
             asteroidController.setup(MathUtils.random(0, ScreenManager.SCREEN_WIDTH),
                     MathUtils.random(0, ScreenManager.SCREEN_HEIGHT),
                     MathUtils.random(-150, 150), MathUtils.random(-150, 150), 1.0f);
@@ -58,28 +101,54 @@ public class GameController {
     }
 
     public void update(float dt) {
-        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
-            pause = (pause == true) ? false : true;
+        if (pause) {
+            return;
         }
-        if (!pause) {
-            background.update(dt);
-            bulletController.update(dt);
-            asteroidController.update(dt);
-            bonusController.update(dt);
-            particleController.update(dt);
-            hero.update(dt);
-            checkCollisions();
-            checkGameOver();
-        }
-    }
-
-    private void checkGameOver() {
-        if (getHero().getHp() <= 0) {
+        timer += dt;
+        background.update(dt);
+        bulletController.update(dt);
+        asteroidController.update(dt);
+        particleController.update(dt);
+        powerUpsController.update(dt);
+        infoController.update(dt);
+        hero.update(dt);
+        bot.update(dt);
+        stage.act(dt);
+        checkCollisions();
+        if (!hero.isAlive()) {
             ScreenManager.getInstance().changeScreen(ScreenManager.ScreenType.GAMEOVER, hero);
         }
+        if (asteroidController.getActiveList().size() == 0) {
+            level++;
+            generateBigAsteroids(level + 2);
+            timer = 0;
+        }
     }
 
+
     public void checkCollisions() {
+        //столкновение астероидов и героя
+        for (int i = 0; i < asteroidController.getActiveList().size(); i++) {
+            Asteroid a = asteroidController.getActiveList().get(i);
+            if (hero.getHitArea().overlaps(a.getHitArea())) {
+                float dst = a.getPosition().dst(hero.getPosition());
+                float halfOverLen = (a.getHitArea().radius + hero.getHitArea().radius - dst) / 2.0f;
+                tempVec.set(hero.getPosition()).sub(a.getPosition()).nor();
+                hero.getPosition().mulAdd(tempVec, halfOverLen);
+                a.getPosition().mulAdd(tempVec, -halfOverLen);
+
+                float sumScl = hero.getHitArea().radius * 2 + a.getHitArea().radius;
+                hero.getVelocity().mulAdd(tempVec, 200.0f * a.getHitArea().radius / sumScl);
+                a.getVelocity().mulAdd(tempVec, -200.0f * hero.getHitArea().radius / sumScl);
+
+                if (a.takeDamage(2)) {
+                    hero.addScore(a.getHpMax() * 50);
+                }
+                hero.takeDamage(2 * level);
+            }
+        }
+
+        //столкновение пуль и астероидов
         for (int i = 0; i < bulletController.getActiveList().size(); i++) {
             Bullet b = bulletController.getActiveList().get(i);
             for (int j = 0; j < asteroidController.getActiveList().size(); j++) {
@@ -93,44 +162,34 @@ public class GameController {
                             0.0f, 0.1f, 1.0f, 0.0f);
 
                     b.deactivate();
-                    if (a.takeDamage(1)) {
+                    if (a.takeDamage(hero.getCurrentWeapon().getDamage())) {
                         hero.addScore(a.getHpMax() * 100);
+                        for (int k = 0; k < 3; k++) {
+                            powerUpsController.setup(a.getPosition().x, a.getPosition().y, a.getScale() * 0.25f);
+                        }
                     }
                     break;
                 }
             }
         }
 
-        for (int j = 0; j < asteroidController.getActiveList().size(); j++) {
-            Asteroid a = asteroidController.getActiveList().get(j);
-            if (a.getHitArea().overlaps(hero.getHitArea())) {
-                hero.addScore(a.getHpMax() * 100);
-                hero.delHP(a.getHpMax());
-                a.deactivate();
-                break;
+        // Столкновение поверапсов и героя
+        for (int i = 0; i < powerUpsController.getActiveList().size(); i++) {
+            PowerUp pu = powerUpsController.getActiveList().get(i);
+            if (hero.getMagneticField().contains(pu.getPosition())) {
+                tempVec.set(hero.getPosition()).sub(pu.getPosition()).nor();
+                pu.getVelocity().mulAdd(tempVec, 100);
+            }
+
+            if (hero.getHitArea().contains(pu.getPosition())) {
+                hero.consume(pu);
+                particleController.getEffectBuilder().takePowerUpsEffect(pu);
+                pu.deactivate();
             }
         }
+    }
 
-        for (int j = 0; j < bonusController.getActiveList().size(); j++) {
-            Bonus b = bonusController.getActiveList().get(j);
-
-            if (b.getMagnetArea().overlaps(hero.getHitArea())) {
-                tempVec.set(hero.getPosition()).sub(b.getPosition()).nor();
-                b.getVelocity().mulAdd(tempVec, 100);
-            }
-
-            if (b.getHitArea().overlaps(hero.getHitArea())) {
-                if (b.getType().equals(Bonus.BonusType.MEDICINE))
-                    hero.addHP(10);
-                if (b.getType().equals(Bonus.BonusType.AMMUNITION))
-                    hero.getCurrentWeapon().setCurBullets(hero.getCurrentWeapon().getCurBullets() + 100);
-                if (b.getType().equals(Bonus.BonusType.MONEY))
-                    hero.addMonew(100);
-
-                b.deactivate();
-                break;
-            }
-        }
-
+    public void dispose() {
+        background.dispose();
     }
 }
