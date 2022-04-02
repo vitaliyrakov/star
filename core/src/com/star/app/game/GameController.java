@@ -17,7 +17,7 @@ public class GameController {
     private PowerUpsController powerUpsController;
     private InfoController infoController;
     private Hero hero;
-    private Bot bot;
+    private BotController botController;
     private Vector2 tempVec;
     private Stage stage;
     private boolean pause;
@@ -25,6 +25,9 @@ public class GameController {
     private float timer;
     private Music music;
 
+    public BotController getBotController() {
+        return botController;
+    }
 
     public float getTimer() {
         return timer;
@@ -78,13 +81,15 @@ public class GameController {
         this.powerUpsController = new PowerUpsController(this);
         this.infoController = new InfoController();
         this.hero = new Hero(this);
-        this.bot = new Bot(this);
+        this.botController = new BotController(this);
         this.tempVec = new Vector2();
         this.stage = new Stage(ScreenManager.getInstance().getViewport(), batch);
         this.stage.addActor(hero.getShop());
         Gdx.input.setInputProcessor(stage);
         this.level = 1;
         generateBigAsteroids(2);
+
+        botController.setup(100, 100);
 
         this.music = Assets.getInstance().getAssetManager().get("audio/mortal.mp3");
         this.music.setLooping(true);
@@ -112,7 +117,7 @@ public class GameController {
         powerUpsController.update(dt);
         infoController.update(dt);
         hero.update(dt);
-        bot.update(dt);
+        botController.update(dt);
         stage.act(dt);
         checkCollisions();
         if (!hero.isAlive()) {
