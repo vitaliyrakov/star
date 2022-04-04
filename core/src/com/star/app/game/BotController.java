@@ -3,27 +3,27 @@ package com.star.app.game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.star.app.game.helpers.ObjectPool;
 
-public class BonusController extends ObjectPool<Bonus> {
+public class BotController extends ObjectPool<Bot> {
     private GameController gc;
 
     @Override
-    protected Bonus newObject() {
-        return new Bonus(gc);
+    protected Bot newObject() {
+        return new Bot(gc);
     }
 
-    public BonusController(GameController gc) {
+    public BotController(GameController gc) {
         this.gc = gc;
     }
 
     public void render(SpriteBatch batch) {
         for (int i = 0; i < activeList.size(); i++) {
-            Bonus b = activeList.get(i);
+            Bot b = activeList.get(i);
             b.render(batch);
         }
     }
 
-    public void setup(float x, float y, float vx, float vy, float scale){
-        getActiveElement().activate(x, y, vx, vy, scale);
+    public void setup(float x, float y){
+        getActiveElement().activate(x, y);
     }
 
     public void update(float dt) {

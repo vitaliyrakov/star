@@ -2,96 +2,141 @@ package com.star.app.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
-import com.star.app.screen.ScreenManager;
 import com.star.app.screen.utils.Assets;
 
-public class Hero {
-    private StringBuilder sb;
-    private GameController gc;
-    private TextureRegion texture;
-    private Vector2 position;
-    private Vector2 velocity;
-    private float angle;
-    private float enginePower;
-    private float fireTimer;
+public class Hero extends Ship {
+    public enum Skill {
+        HP_MAX(20), HP(20), WEAPON(100), MAGNET(50);
+
+        int cost;
+
+        Skill(int cost) {
+            this.cost = cost;
+        }
+    }
+
     private int score;
     private int scoreView;
-    private int hp;
-    private int hpMax;
-    private Circle hitArea;
-    private Weapon currentWeapon;
+    private StringBuilder sb;
     private int money;
+    private Shop shop;
+    private Circle magneticField;
 
-    public Weapon getCurrentWeapon() {
-        return currentWeapon;
+    public Circle getMagneticField() {
+        return magneticField;
+    }
+
+    public Shop getShop() {
+        return shop;
     }
 
     public int getScore() {
         return score;
     }
 
-    public int getHp() {
-        return hp;
+    public int getMoney() {
+        return money;
     }
 
-    public int getScoreView() {
-        return scoreView;
+    public boolean isMoneyEnough(int amount) {
+        return money >= amount;
     }
 
-    public Vector2 getPosition() {
-        return position;
+    public void decreaseMoney(int amount) {
+        money -= amount;
     }
 
-    public Vector2 getVelocity() {
-        return velocity;
-    }
-
-    public float getAngle() {
-        return angle;
+    public void setPause(boolean pause) {
+        gc.setPause(pause);
     }
 
     public Hero(GameController gc) {
-        this.gc = gc;
+        super(gc,700, 100);
         this.texture = Assets.getInstance().getAtlas().findRegion("ship");
         this.position = new Vector2(640, 360);
-        this.velocity = new Vector2(0, 0);
-        this.angle = 0.0f;
-        this.enginePower = 700.0f;
-        this.hitArea = new Circle(0, 0, 0);
-        this.hpMax = 100;
-        this.hp = hpMax;
-        this.sb = new StringBuilder();
-        this.currentWeapon = new Weapon(gc, this,0.2f,1, 700, 100,
-                new Vector3[]{
-                        new Vector3(28, 0,0),
-                        new Vector3(28, -90,-10),
-                        new Vector3(28, 90,10),
-                });
-    }
+        this.hitArea = new Circle(position, 28);
 
-    public Circle getHitArea() {
-        return hitArea;
+        this.magneticField = new Circle(position, 50);
+        this.money = 1000;
+        this.shop = new Shop(this);
+        this.sb = new StringBuilder();
     }
 
     public void addScore(int amount) {
         score += amount;
     }
 
-    public void delHP(int amount) {
-        hp -= amount;
+    public void consume(PowerUp p) {
+        sb.setLength(0);
+        switch (p.getType()) {
+            case MEDKIT:
+                int oldHP = hp;
+                hp += p.getPower();
+                if (hp > hpMax) {
+                    hp = hpMax;
+                }
+                sb.append("HP +").append(hp - oldHP);
+                gc.getInfoController().setup(p.getPosition().x, p.getPosition().y, sb,Color.GREEN );
+                break;
+            case AMMOS:
+                int count = currentWeapon.addAmmos(p.getPower());
+                sb.append("AMMOS +").append(count);
+                gc.getInfoController().setup(p.getPosition().x, p.getPosition().y, sb,Color.RED );
+                break;
+            case MONEY:
+                money += p.getPower();
+                sb.append("MONEY +").append(p.getPower());
+                gc.getInfoController().setup(p.getPosition().x, p.getPosition().y, sb,Color.YELLOW );
+                break;
+        }
     }
-    public void addMonew(int amount) {
-        money += amount;
+
+    public boolean upgrade(Skill skill) {
+        switch (skill) {
+            case HP_MAX:
+                hpMax += 10;
+                return true;
+            case HP:
+                if (hp < hpMax) {
+                    hp += 10;
+                    if (hp > hpMax) {
+                        hp = hpMax;
+                    }
+                    return true;
+                }
+                return false;
+            case WEAPON:
+                if (weaponNum < weapons.length - 1) {
+                    weaponNum++;
+                    currentWeapon = weapons[weaponNum];
+                    return true;
+                }
+                return false;
+            case MAGNET:
+                if (magneticField.radius < 500) {
+                    magneticField.radius += 10;
+                    return true;
+                }
+                return false;
+        }
+        return false;
     }
-    public void addHP(int amount) {
-        hp += amount;
+
+    public void renderGUI(SpriteBatch batch, BitmapFont font) {
+        sb.setLength(0);
+        sb.append("SCORE: ").append(scoreView).append("\n");
+        sb.append("HP: ").append(hp).append("/").append(hpMax).append("\n");
+        sb.append("BULLETS: ").append(currentWeapon.getCurBullets()).append("/").append(currentWeapon.getMaxBullets()).append("\n");
+        sb.append("MONEY: ").append(money).append("\n");
+        sb.append("MAGNETIC: ").append((int) magneticField.radius).append("\n");
+        sb.append("TIMER: ").append((int) gc.getTimer()).append("\n");
+        font.draw(batch, sb, 20, 700);
     }
 
     public void render(SpriteBatch batch) {
@@ -100,14 +145,13 @@ public class Hero {
     }
 
     public void update(float dt) {
-        fireTimer += dt;
-        if (scoreView < score) {
-            scoreView += 1500 * dt;
-            if (scoreView > score) {
-                scoreView = score;
-            }
-        }
+        super.update(dt);
+        updateScore(dt);
 
+        if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+            shop.setVisible(true);
+            gc.setPause(true);
+        }
         if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
             tryToFire();
         }
@@ -133,9 +177,10 @@ public class Hero {
                         1.0f, 1.0f, 1.0f, 0.0f);
             }
         }
+
         if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            velocity.x += MathUtils.cosDeg(angle - 180) * enginePower / 2 * dt;
-            velocity.y += MathUtils.sinDeg(angle - 180) * enginePower / 2 * dt;
+            velocity.x += MathUtils.cosDeg(angle) * enginePower * -0.5f * dt;
+            velocity.y += MathUtils.sinDeg(angle) * enginePower * -0.5f * dt;
 
             float bx = position.x + MathUtils.cosDeg(angle - 90) * 25;
             float by = position.y + MathUtils.sinDeg(angle - 90) * 25;
@@ -161,52 +206,15 @@ public class Hero {
                         1.0f, 1.0f, 1.0f, 0.0f);
             }
         }
-
-        position.mulAdd(velocity, dt);
-        float stopKoef = 1.0f - dt;
-        if (stopKoef < 0.0f) {
-            stopKoef = 0.0f;
-        }
-        velocity.scl(stopKoef);
-
-        checkBorders();
-        hitArea.setPosition(position);
-        hitArea.setRadius(20);
+        magneticField.setPosition(position);
     }
 
-    public void checkBorders() {
-        if (position.x < 32) {
-            position.x = 32f;
-            velocity.x *= -0.5f;
-        }
-        if (position.x > ScreenManager.SCREEN_WIDTH - 32) {
-            position.x = ScreenManager.SCREEN_WIDTH - 32f;
-            velocity.x *= -0.5f;
-        }
-        if (position.y < 32) {
-            position.y = 32f;
-            velocity.y *= -0.5f;
-        }
-        if (position.y > ScreenManager.SCREEN_HEIGHT - 32) {
-            position.y = ScreenManager.SCREEN_HEIGHT - 32f;
-            velocity.y *= -0.5f;
+    private void updateScore(float dt) {
+        if (scoreView < score) {
+            scoreView += 1500 * dt;
+            if (scoreView > score) {
+                scoreView = score;
+            }
         }
     }
-
-    public void renderGUI(SpriteBatch batch, BitmapFont font) {
-        sb.setLength(0);
-        sb.append("SCORE: ").append(scoreView).append("\n");
-        sb.append("HP: ").append(hp).append("/").append(hpMax).append("\n");
-        sb.append("BULLETS: ").append(currentWeapon.getCurBullets()).append("/").append(currentWeapon.getMaxBullets()).append("\n");
-        sb.append("$: ").append(money).append("\n");
-        font.draw(batch, sb, 20, 700);
-    }
-
-    private void tryToFire() {
-        if (fireTimer > 0.2) {
-            fireTimer = 0.0f;
-            currentWeapon.fire();
-        }
-    }
-
 }

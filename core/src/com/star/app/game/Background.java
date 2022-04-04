@@ -18,13 +18,17 @@ public class Background {
         public Star() {
             this.position = new Vector2(MathUtils.random(-200, SCREEN_WIDTH + 200),
                     MathUtils.random(-200, SCREEN_HEIGHT + 200));
-            this.velocity = new Vector2(MathUtils.random(-15, -1), 0);
-            scale = Math.abs(velocity.x / 15f) * 0.8f;
+            this.velocity = new Vector2(MathUtils.random(-40, -5), 0);
+            scale = Math.abs(velocity.x / 40f) * 0.8f;
         }
 
         public void update(float dt) {
-            position.x += (velocity.x - gc.getHero().getVelocity().x * 0.1f) * dt;
-            position.y += (velocity.y - gc.getHero().getVelocity().y * 0.1f) * dt;
+            if (gc != null) {
+                position.x += (velocity.x - gc.getHero().getVelocity().x * 0.1f) * dt;
+                position.y += (velocity.y - gc.getHero().getVelocity().y * 0.1f) * dt;
+            } else {
+                position.mulAdd(velocity, dt);
+            }
 
             if (position.x < -200) {
                 position.x = SCREEN_WIDTH + 200;

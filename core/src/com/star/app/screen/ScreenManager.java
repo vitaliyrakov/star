@@ -9,7 +9,7 @@ import com.star.app.game.Hero;
 import com.star.app.screen.utils.Assets;
 
 public class ScreenManager {
-    public enum ScreenType {
+    public enum ScreenType{
         GAME, MENU, GAMEOVER
     }
 
@@ -22,8 +22,8 @@ public class ScreenManager {
     private SpriteBatch batch;
     private LoadingScreen loadingScreen;
     private GameScreen gameScreen;
-    private GameOverScreen gameOverScreen;
     private MenuScreen menuScreen;
+    private GameOverScreen gameOverScreen;
     private Screen targetScreen;
     private Viewport viewport;
 
@@ -45,8 +45,8 @@ public class ScreenManager {
         this.batch = batch;
         this.viewport = new FitViewport(SCREEN_WIDTH, SCREEN_HEIGHT);
         this.gameScreen = new GameScreen(batch);
-        this.gameOverScreen = new GameOverScreen(batch);
         this.menuScreen = new MenuScreen(batch);
+        this.gameOverScreen = new GameOverScreen(batch);
         this.loadingScreen = new LoadingScreen(batch);
     }
 
@@ -68,12 +68,10 @@ public class ScreenManager {
                 targetScreen = gameScreen;
                 Assets.getInstance().loadAssets(ScreenType.GAME);
                 break;
-
             case MENU:
                 targetScreen = menuScreen;
                 Assets.getInstance().loadAssets(ScreenType.MENU);
                 break;
-
             case GAMEOVER:
                 targetScreen = gameOverScreen;
                 gameOverScreen.setDefeatedHero((Hero) args[0]);

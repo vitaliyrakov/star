@@ -25,15 +25,6 @@ public class Asteroid implements Poolable {
     private final float BASE_SIZE = 256.0f;
     private final float BASE_RADIUS = BASE_SIZE / 2;
 
-    public Asteroid(GameController gc) {
-        this.gc = gc;
-        this.position = new Vector2();
-        this.velocity = new Vector2();
-        this.hitArea = new Circle(0, 0, 0);
-        this.active = false;
-        this.texture = Assets.getInstance().getAtlas().findRegion("asteroid");
-    }
-
     public float getScale() {
         return scale;
     }
@@ -51,29 +42,47 @@ public class Asteroid implements Poolable {
         return active;
     }
 
-    public void deactivate() {
-        active = false;
-    }
-
     public Vector2 getPosition() {
         return position;
+    }
+
+    public Vector2 getVelocity() {
+        return velocity;
+    }
+
+    public Asteroid(GameController gc) {
+        this.gc = gc;
+        this.position = new Vector2();
+        this.velocity = new Vector2();
+        this.hitArea = new Circle(0, 0, 0);
+        this.active = false;
+        this.texture = Assets.getInstance().getAtlas().findRegion("asteroid");
+    }
+
+    public void render(SpriteBatch batch) {
+        batch.draw(texture, position.x - 128, position.y - 128, 128, 128,
+                256, 256, scale, scale, angle);
+    }
+
+    public void deactivate() {
+        active = false;
     }
 
     public void update(float dt) {
         position.mulAdd(velocity, dt);
         angle += rotationSpeed * dt;
 
-        if (position.x < -200) {
-            position.x = ScreenManager.SCREEN_WIDTH + 200;
+        if (position.x < -hitArea.radius) {
+            position.x = ScreenManager.SCREEN_WIDTH + hitArea.radius;
         }
-        if (position.x > ScreenManager.SCREEN_WIDTH + 200) {
-            position.x = -200;
+        if (position.x > ScreenManager.SCREEN_WIDTH + hitArea.radius) {
+            position.x = -hitArea.radius;
         }
-        if (position.y < -200) {
-            position.y = ScreenManager.SCREEN_HEIGHT + 200;
+        if (position.y < -hitArea.radius) {
+            position.y = ScreenManager.SCREEN_HEIGHT + hitArea.radius;
         }
-        if (position.y > ScreenManager.SCREEN_HEIGHT + 200) {
-            position.y = -200;
+        if (position.y > ScreenManager.SCREEN_HEIGHT + hitArea.radius) {
+            position.y = -hitArea.radius;
         }
         hitArea.setPosition(position);
     }
@@ -82,7 +91,7 @@ public class Asteroid implements Poolable {
         position.set(x, y);
         velocity.set(vx, vy);
         active = true;
-        hpMax = (int) (10 * scale);
+        hpMax = (int) ((gc.getLevel() * 3 + 7) * scale);
         hp = hpMax;
         angle = MathUtils.random(0.0f, 360.0f);
         rotationSpeed = MathUtils.random(-180.0f, 180.0f);
@@ -91,30 +100,27 @@ public class Asteroid implements Poolable {
         hitArea.setRadius(BASE_RADIUS * scale * 0.9f);
     }
 
-    public void render(SpriteBatch batch) {
-        batch.draw(texture, position.x - 128, position.y - 128, 128, 128,
-                256, 256, scale, scale, angle);
-    }
-
     public boolean takeDamage(int amount) {
         hp -= amount;
         if (hp <= 0) {
             deactivate();
             if (scale > 0.41f) {
-                gc.getAsteroidController().setup(position.x, position.y,
-                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
-                gc.getAsteroidController().setup(position.x, position.y,
-                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
-                gc.getAsteroidController().setup(position.x, position.y,
-                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
-            } else {
-                gc.getBonusController().setup(position.x, position.y,
-                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), 1.0f);
+                for (int i = 0; i < 5; i++) {
+                    if (MathUtils.random() < 0.5) {
+                        gc.getAsteroidController().setup(position.x, position.y,
+                                MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
+                    }
+                }
+//                gc.getAsteroidController().setup(position.x, position.y,
+//                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
+//                gc.getAsteroidController().setup(position.x, position.y,
+//                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
+//                gc.getAsteroidController().setup(position.x, position.y,
+//                        MathUtils.random(-150, 150), MathUtils.random(-150, 150), scale - 0.3f);
             }
             return true;
         } else {
             return false;
         }
     }
-
 }
